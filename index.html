@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Management Dashboard</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- SheetJS – read .xlsx uploads -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ───────────────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">💧</div>
+    <div class="logo-text">Water Dashboard</div>
+    <div class="logo-sub">Rainfall Harvesting &amp; Demand</div>
+  </div>
+
+  <nav class="nav-section">
+    <div class="nav-section-label">Navigation</div>
+
+    <button class="nav-item" data-tab="projects">
+      <span class="nav-icon">🏘</span> Projects
+    </button>
+
+    <button class="nav-item" data-tab="reference">
+      <span class="nav-icon">📖</span> Reference Project
+    </button>
+
+    <div class="nav-section-label" style="margin-top:8px">Active Project</div>
+
+    <button class="nav-item" data-tab="inputs">
+      <span class="nav-icon">⚙️</span> Project Inputs
+    </button>
+
+    <button class="nav-item" data-tab="rainfall">
+      <span class="nav-icon">🌧</span> Rainfall Data
+    </button>
+
+    <button class="nav-item" data-tab="analysis">
+      <span class="nav-icon">📊</span> Analysis
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    v1.0 · Water Mgmt Tool
+  </div>
+</aside>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<div class="main-wrapper">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-project" id="topbar-project">
+      <span style="color:#64748b;font-size:13px">Active project:</span>
+      <span class="topbar-project-badge" id="active-proj-label">None selected</span>
+    </div>
+    <div style="font-size:12px;color:#94a3b8">
+      All calculations replicate Excel water model formulas
+    </div>
+  </header>
+
+  <!-- Page content -->
+  <main id="main-content"></main>
+
+</div>
+
+<!-- ── Scripts ───────────────────────────────────────────────────────────── -->
+<script src="js/engine.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/app.js"></script>
+
+<!-- Update topbar on any navigation -->
+<script>
+  const _origNav = navigateTo;
+  navigateTo = function(tab) {
+    _origNav(tab);
+    const ap = state.activeProject;
+    const el = document.getElementById('active-proj-label');
+    if (el) el.textContent = ap ? ap.name : 'None selected';
+  };
+</script>
+
+</body>
+</html>
