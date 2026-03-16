@@ -234,13 +234,13 @@ function renderReferencePage(container) {
         <table class="ref-table">
           <thead><tr><th>Location</th><th>Area (sqm)</th><th>Coeff.</th><th>Type</th></tr></thead>
           <tbody>
-            ${ref.catchments.map(c => \`
+            ${ref.catchments.map(c => `
               <tr>
-                <td>\${c.name}</td>
-                <td>\${c.area.toLocaleString()}</td>
-                <td>\${c.coeff}</td>
-                <td><span class="type-badge type-\${c.type}">\${c.type}</span></td>
-              </tr>\`).join('')}
+                <td>${c.name}</td>
+                <td>${c.area.toLocaleString()}</td>
+                <td>${c.coeff}</td>
+                <td><span class="type-badge type-${c.type}">${c.type}</span></td>
+              </tr>`).join('')}
             <tr class="total-row">
               <td><strong>TOTAL</strong></td>
               <td><strong>${dp.totalCatchmentArea.toLocaleString()}</strong></td><td></td><td></td>
@@ -292,7 +292,7 @@ function renderReferencePage(container) {
 }
 
 function refRow(label, val, unit) {
-  return \`<div class="ref-row"><span class="ref-label">\${label}</span><span class="ref-val">\${typeof val === 'number' ? val.toLocaleString() : val} <small>\${unit}</small></span></div>\`;
+  return `<div class="ref-row"><span class="ref-label">${label}</span><span class="ref-val">${typeof val === 'number' ? val.toLocaleString() : val} <small>${unit}</small></span></div>`;
 }
 
 
@@ -451,8 +451,8 @@ function renderIrrigationSummary(params) {
               <td class="irr-kl">${ib.villaIrrigKL.toFixed(1)}</td></tr>
           <tr class="irr-sum-subtotal"><td colspan="3">Irrigation Sub-total</td>
               <td class="irr-kl">${ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL > 0 ? (ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL).toFixed(1) : '0.0'}</td></tr>
-          ${ib.goshalKL > 0 ? \`<tr><td>Goshala</td><td>–</td><td>–</td><td class="irr-kl">\${ib.goshalKL.toFixed(0)}</td></tr>\` : ''}
-          ${ib.swimmingPoolKL > 0 ? \`<tr><td>Swimming Pool</td><td>–</td><td>–</td><td class="irr-kl">\${ib.swimmingPoolKL.toFixed(0)}</td></tr>\` : ''}
+          ${ib.goshalKL > 0 ? `<tr><td>Goshala</td><td>–</td><td>–</td><td class="irr-kl">${ib.goshalKL.toFixed(0)}</td></tr>` : ''}
+          ${ib.swimmingPoolKL > 0 ? `<tr><td>Swimming Pool</td><td>–</td><td>–</td><td class="irr-kl">${ib.swimmingPoolKL.toFixed(0)}</td></tr>` : ''}
           <tr class="irr-sum-total"><td colspan="3"><strong>Total Non-Domestic (D29)</strong></td>
               <td class="irr-kl"><strong>${ib.totalMonthlyKL.toFixed(0)} KL/mo</strong></td></tr>
           <tr class="irr-sum-total"><td colspan="3"><strong>Daily Non-Domestic (D30)</strong></td>
