@@ -368,3 +368,38 @@ body { font-family: var(--font); background: var(--bg); color: var(--text);
 .toast-success { background: #022c22; color: #6ee7b7; }
 .toast-info    { background: #0f172a; color: #93c5fd; }
 .toast-error   { background: #450a0a; color: #fca5a5; }
+
+/* ── Irrigation input sub-sections ─────────────────────────── */
+.input-sub-section {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--primary);
+  margin: 14px 0 6px; padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.derived-note {
+  font-size: 11px; color: var(--muted);
+  background: #f0fdf4; border: 1px solid #bbf7d0;
+  border-radius: 6px; padding: 8px 12px; margin-top: 8px;
+}
+
+/* ── Irrigation Summary Table ───────────────────────────────── */
+.irrigation-summary {
+  margin-top: 16px; border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.irr-sum-title {
+  background: #f8fafc; padding: 8px 14px;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.irr-sum-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.irr-sum-table th {
+  padding: 6px 10px; background: #f1f5f9;
+  text-align: left; font-weight: 600; color: var(--muted);
+  font-size: 11px;
+}
+.irr-sum-table td { padding: 5px 10px; border-bottom: 1px solid #f1f5f9; }
+.irr-sum-table td.irr-kl { text-align: right; font-weight: 600; color: var(--primary); }
+.irr-sum-subtotal td { background: #fafafa; font-style: italic; }
+.irr-sum-total td { background: #eff6ff; font-weight: 700; }
+.irr-sum-total td.irr-kl { color: var(--primary); font-size: 13px; }

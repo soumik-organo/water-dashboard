@@ -180,47 +180,52 @@ function closeModal() {
 function renderReferencePage(container) {
   const ref = REFERENCE_PROJECT.params;
   const dp  = computeDerivedParams(ref);
-  const dailyDomL = dp.totalPop * (ref.lpcd / ref.occupantsPerVilla);
+  const dailyDomL = dp.totalPop * (ref.lpcdPerPerson || ref.lpcd / ref.occupantsPerVilla || 170);
+  const ib  = calcIrrigationBreakdown(ref);
 
   container.innerHTML = `
     <div class="page-header">
-      <div><h1 class="page-title">Reference Project</h1>
-           <p class="page-subtitle">Read-only baseline from Excel template</p></div>
+      <div><h1 class="page-title">Reference Project – Antharam</h1>
+           <p class="page-subtitle">60 acres · 182 villas · Read-only calibration baseline from Excel</p></div>
     </div>
 
     <div class="ref-grid">
       <!-- Site Parameters -->
       <div class="card">
         <div class="card-title">Site Parameters</div>
-        ${refRow('Land Size', ref.landSize, 'Acres')}
-        ${refRow('Number of Villas', ref.numVillas, 'nos.')}
-        ${refRow('BUA per Villa', ref.bua, 'sq ft')}
-        ${refRow('Bedrooms', ref.bedrooms, 'BHK')}
-        ${refRow('Occupants per Villa', ref.occupantsPerVilla, 'persons')}
-        ${refRow('Total Population', dp.totalPop, 'persons')}
+        ${refRow('Land Size',             ref.landSize,             'Acres')}
+        ${refRow('Number of Villas',      ref.numVillas,            'nos.')}
+        ${refRow('BUA per Villa',         ref.bua,                  'sq ft')}
+        ${refRow('Bedrooms',              ref.bedrooms,             'BHK')}
+        ${refRow('Occupants per Villa',   ref.occupantsPerVilla,    'persons')}
+        ${refRow('Total Population',      dp.totalPop,              'persons')}
+        ${refRow('LPCD (per person)',      ref.lpcdPerPerson || 170, 'lpcd')}
+        ${refRow('Daily Domestic',        (dailyDomL/1000).toFixed(1),  'KL/day')}
+        ${refRow('Monthly Domestic',      ((dailyDomL/1000)*30).toFixed(0), 'KL/month')}
       </div>
 
-      <!-- Water Demand -->
+      <!-- Irrigation – Antharam Calibration Ratios -->
       <div class="card">
-        <div class="card-title">Domestic Water Demand</div>
-        ${refRow('LPCD (per person)', ref.lpcd / ref.occupantsPerVilla, 'lpcd')}
-        <div class="ref-section-label">Breakdown per person (lpcd):</div>
-        ${Object.entries(ref.waterBreakdown).map(([k,v]) => refRow(capitalize(k), v, 'lpcd')).join('')}
-        ${refRow('Total per household', ref.lpcd, 'L/day (4 persons)')}
-        ${refRow('Daily Domestic (all villas)', (dailyDomL/1000).toFixed(1), 'KL/day')}
-        ${refRow('Monthly Domestic', ((dailyDomL/1000)*30).toFixed(0), 'KL/month')}
-      </div>
-
-      <!-- Farm & Irrigation -->
-      <div class="card">
-        <div class="card-title">Farm & Irrigation</div>
-        ${refRow('Farm Area', ref.farmArea.toFixed(0), 'sq mtr')}
-        ${refRow('Forest Area', ref.forestArea, 'sq mtr')}
-        ${refRow('Road Area', ref.roadArea.toFixed(0), 'sq mtr')}
-        ${refRow('Total Drip Lines', ref.totalDripLines, 'nos.')}
-        ${refRow('Drip Flow Rate', ref.dripFlowRate, 'LPH per line')}
-        ${refRow('Total Drip Flow', ref.totalDripLines * ref.dripFlowRate, 'L/hr')}
-        ${refRow('Daily Drip Water (30 min)', ((ref.totalDripLines * ref.dripFlowRate * 0.5) * ref.dripEfficiency / 1000).toFixed(1), 'KL/day')}
+        <div class="card-title">Irrigation Calibration Ratios (exported to New Project)</div>
+        <div class="ref-section-label">🌱 Drip Irrigation</div>
+        ${refRow('Farm Drip Area',           ref.farmDripArea.toFixed(0),       'sq m')}
+        ${refRow('Total Drippers',           dp.numDrippers.toLocaleString(),   'nos.')}
+        ${refRow('Drippers per sq m',        ref.drippersPerSqm,                'ratio (B11)')}
+        ${refRow('Drip Flow Rate',           ref.dripFlowRate,                  'LPH per dripper')}
+        ${refRow('Drip Water (30-min/day)',  dp.dripDailyL.toLocaleString(),    'L/day')}
+        ${refRow('Drip Monthly',             ib.dripFarmingKL.toFixed(0),       'KL/month')}
+        <div class="ref-section-label">💦 Farm Sprinklers</div>
+        ${refRow('Farm Sprinkler Area',      ref.farmSprinklerArea.toFixed(0),  'sq m')}
+        ${refRow('Farm Sprinklers',          dp.numSprinklersFarm,              'nos.')}
+        ${refRow('Sprinklers per sq m',      ref.farmSprinklersPerSqm,          'ratio (B16)')}
+        ${refRow('Farm Sprinkler Monthly',   ib.farmSprinklerKL.toFixed(0),     'KL/month')}
+        <div class="ref-section-label">🏡 Villa Irrigation</div>
+        ${refRow('Villa Irrigation Area',    ref.villaIrrigArea.toFixed(0),     'sq m')}
+        ${refRow('Villa Sprinklers',         dp.numSprinklersVilla,             'nos.')}
+        ${refRow('Sprinklers per sq m',      ref.villaSprinklersPerSqm,         'ratio (B22)')}
+        ${refRow('Villa Irrigation Monthly', ib.villaIrrigKL.toFixed(0),        'KL/month')}
+        <div class="ref-section-label">Totals</div>
+        ${refRow('Total Irrigation Monthly', ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL > 0 ? (ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL).toFixed(0) : 0, 'KL/month')}
       </div>
 
       <!-- Catchment Areas -->
@@ -229,13 +234,13 @@ function renderReferencePage(container) {
         <table class="ref-table">
           <thead><tr><th>Location</th><th>Area (sqm)</th><th>Coeff.</th><th>Type</th></tr></thead>
           <tbody>
-            ${ref.catchments.map(c => `
+            ${ref.catchments.map(c => \`
               <tr>
-                <td>${c.name}</td>
-                <td>${c.area.toLocaleString()}</td>
-                <td>${c.coeff}</td>
-                <td><span class="type-badge type-${c.type}">${c.type}</span></td>
-              </tr>`).join('')}
+                <td>\${c.name}</td>
+                <td>\${c.area.toLocaleString()}</td>
+                <td>\${c.coeff}</td>
+                <td><span class="type-badge type-\${c.type}">\${c.type}</span></td>
+              </tr>\`).join('')}
             <tr class="total-row">
               <td><strong>TOTAL</strong></td>
               <td><strong>${dp.totalCatchmentArea.toLocaleString()}</strong></td><td></td><td></td>
@@ -258,35 +263,38 @@ function renderReferencePage(container) {
         </table>
       </div>
 
-      <!-- Demand Formula -->
+      <!-- Key Formulas -->
       <div class="card">
         <div class="card-title">Key Calculation Formulas</div>
         <div class="formula-block">
-          <p class="formula-title">Daily Domestic Demand</p>
+          <p class="formula-title">Daily Domestic Demand (Sheet 3 col E)</p>
           <code>= Population × (LPCD ÷ 1000) × Diversity%</code>
-          <p class="formula-example">e.g. 728 × (50÷1000) × 0.30 = 10.9 KL/day</p>
         </div>
         <div class="formula-block">
-          <p class="formula-title">Daily Harvestable Water (per catchment)</p>
+          <p class="formula-title">Drip Irrigation Daily (New Project B22)</p>
+          <code>= (FarmDripArea × DrippersPerSqm) × 4 LPH × 0.5hr × 0.90 eff</code>
+        </div>
+        <div class="formula-block">
+          <p class="formula-title">Sprinkler Irrigation Daily (New Project B23/B24)</p>
+          <code>= (Area × SprinklersPerSqm) × 55 L/session × 0.70 eff</code>
+        </div>
+        <div class="formula-block">
+          <p class="formula-title">Daily Harvestable Water (Sheet 3 cols F–M)</p>
           <code>= (Rainfall_mm ÷ 1000) × Run-off Coeff × Area_sqm</code>
-          <p class="formula-example">e.g. (10÷1000) × 0.85 × 6198 = 52.7 KL</p>
         </div>
         <div class="formula-block">
-          <p class="formula-title">Cumulative Balance</p>
-          <code>= Σ (Daily Harvest − Daily Demand)</code>
-          <p class="formula-example">Min. value = Storage required</p>
+          <p class="formula-title">Min. Storage Required (Sheet 3 S16)</p>
+          <code>= |MIN(cumulative balance over simulation period)|</code>
         </div>
       </div>
     </div>
   `;
-
-  // Catchment donut
-  setTimeout(() => renderCatchmentDonut('ref-catchment-donut', ref), 50);
 }
 
 function refRow(label, val, unit) {
-  return `<div class="ref-row"><span class="ref-label">${label}</span><span class="ref-val">${typeof val === 'number' ? val.toLocaleString() : val} <small>${unit}</small></span></div>`;
+  return \`<div class="ref-row"><span class="ref-label">\${label}</span><span class="ref-val">\${typeof val === 'number' ? val.toLocaleString() : val} <small>\${unit}</small></span></div>\`;
 }
+
 
 // ── INPUTS PAGE ────────────────────────────────────────────────────────────
 function requireProject(container) {
@@ -331,26 +339,37 @@ function renderInputsPage(container) {
       <!-- Section 2: Water Demand -->
       <div class="card">
         <div class="card-title">2. Water Demand</div>
-        ${inputRow('lpcdPerPerson',    'LPCD per Person',         params.lpcdPerPerson || 50,   'L/person/day',  'number')}
-        ${inputRow('farmingMonthlyKL', 'Farming Demand',          params.farmingMonthlyKL,      'KL/month',      'number')}
-        ${inputRow('landscapingMonthlyKL','Landscaping Demand',   params.landscapingMonthlyKL,  'KL/month',      'number')}
-        ${inputRow('swimmingPoolMonthlyKL','Swimming Pool',       params.swimmingPoolMonthlyKL, 'KL/month',      'number')}
-        ${inputRow('amenitiesMonthlyKL',  'Amenities',           params.amenitiesMonthlyKL,     'KL/month',      'number')}
-        ${inputRow('goshalaMontlyKL', 'Goshala (Cattle)',         params.goshalaMontlyKL || 0,  'KL/month',      'number')}
+        ${inputRow('lpcdPerPerson',        'LPCD per Person',     params.lpcdPerPerson || 170,          'L/person/day', 'number')}
+        ${inputRow('goshalaMontlyKL',       'Goshala (Cattle)',    params.goshalaMontlyKL || 0,          'KL/month',     'number')}
+        ${inputRow('swimmingPoolMonthlyKL', 'Swimming Pool',       params.swimmingPoolMonthlyKL || 0,    'KL/month',     'number')}
+        ${inputRow('amenitiesMonthlyKL',    'Amenities',           params.amenitiesMonthlyKL || 0,       'KL/month',     'number')}
+        ${inputRow('landscapingMonthlyKL',  'Landscaping',         params.landscapingMonthlyKL || 0,     'KL/month',     'number')}
+        <div class="derived-note">💧 Irrigation demand is auto-calculated from Section 3 below.</div>
       </div>
 
-      <!-- Section 3: Irrigation -->
+      <!-- Section 3: Irrigation System (Antharam ratio method) -->
       <div class="card">
         <div class="card-title">3. Irrigation System</div>
-        ${inputRow('farmArea',         'Farm Area',           params.farmArea,           'sq mtr',  'number')}
-        ${inputRow('forestArea',       'Forest Area',         params.forestArea,         'sq mtr',  'number')}
-        ${inputRow('roadArea',         'Road Area',           params.roadArea,           'sq mtr',  'number')}
-        ${inputRow('totalDripLines',   'Total Drip Lines',    params.totalDripLines,     'nos.',    'number')}
-        ${inputRow('dripFlowRate',     'Drip Flow Rate',      params.dripFlowRate,       'LPH',     'number')}
-        ${inputRow('dripDurationMin',  'Drip Duration',       params.dripDurationMin,    'min/day', 'number')}
-        ${inputRow('dripEfficiency',   'Drip Efficiency',     params.dripEfficiency,     '(0–1)',   'number', 0, 1, 0.01)}
-        ${inputRow('sprinklerFlowRate','Sprinkler Flow Rate', params.sprinklerFlowRate,  'LPH',     'number')}
-        ${inputRow('sprinklerEfficiency','Sprinkler Effic.',  params.sprinklerEfficiency,'(0–1)',   'number', 0, 1, 0.01)}
+        <p class="section-note">Areas drive dripper &amp; sprinkler counts via Antharam calibration ratios (30‑min session/day).</p>
+
+        <div class="input-sub-section">🌱 2-Line Drip Irrigation</div>
+        ${inputRow('farmDripArea',         'Farm Area – Drip',      params.farmDripArea || params.farmArea || 0, 'sq mtr', 'number')}
+        ${inputRow('drippersPerSqm',       'Drippers / sq m',            params.drippersPerSqm       || 2.3917,  'ratio',  'number', 0, 99, 0.0001)}
+        ${inputRow('dripFlowRate',         'Flow per Dripper',            params.dripFlowRate          || 4,      'LPH',    'number')}
+        ${inputRow('dripEfficiency',       'Drip Efficiency',             params.dripEfficiency        || 0.90,   '(0–1)', 'number', 0, 1, 0.01)}
+
+        <div class="input-sub-section">💦 Farm Sprinkler Irrigation</div>
+        ${inputRow('farmSprinklerArea',    'Farm Area – Sprinklers', params.farmSprinklerArea     || 0,      'sq mtr', 'number')}
+        ${inputRow('farmSprinklersPerSqm', 'Sprinklers / sq m',           params.farmSprinklersPerSqm  || 0.12311,'ratio',  'number', 0, 99, 0.00001)}
+
+        <div class="input-sub-section">🏡 Villa / Landscaping Irrigation</div>
+        ${inputRow('villaIrrigArea',         'Villa Irrigation Area',     params.villaIrrigArea          || 0,    'sq mtr', 'number')}
+        ${inputRow('villaSprinklersPerSqm',  'Sprinklers / sq m',         params.villaSprinklersPerSqm   || 0.017985, 'ratio', 'number', 0, 99, 0.000001)}
+
+        <div class="input-sub-section">⚙️ Common</div>
+        ${inputRow('sprinklerEfficiency',  'Sprinkler Efficiency',        params.sprinklerEfficiency   || 0.70,   '(0–1)', 'number', 0, 1, 0.01)}
+
+        ${renderIrrigationSummary(params)}
       </div>
 
       <!-- Section 4: Catchment Areas -->
@@ -409,6 +428,41 @@ function renderInputsPage(container) {
   `;
 }
 
+function renderIrrigationSummary(params) {
+  const dp = computeDerivedParams(params);
+  const ib = calcIrrigationBreakdown(params);
+  return `
+    <div class="irrigation-summary">
+      <div class="irr-sum-title">Computed Irrigation Summary (New Project sheet D22–D29)</div>
+      <table class="irr-sum-table">
+        <thead><tr><th>Category</th><th>Count</th><th>L/day</th><th>KL/month</th></tr></thead>
+        <tbody>
+          <tr><td>2-Line Drip (Farm)</td>
+              <td>${dp.numDrippers ? dp.numDrippers.toLocaleString()+' drippers' : '–'}</td>
+              <td>${dp.dripDailyL ? dp.dripDailyL.toLocaleString() : 0}</td>
+              <td class="irr-kl">${ib.dripFarmingKL.toFixed(1)}</td></tr>
+          <tr><td>Farm Sprinklers</td>
+              <td>${dp.numSprinklersFarm ? dp.numSprinklersFarm+' sprinklers' : '–'}</td>
+              <td>${dp.sprFarmDailyL ? dp.sprFarmDailyL.toLocaleString() : 0}</td>
+              <td class="irr-kl">${ib.farmSprinklerKL.toFixed(1)}</td></tr>
+          <tr><td>Villa Irrigation</td>
+              <td>${dp.numSprinklersVilla ? dp.numSprinklersVilla+' sprinklers' : '–'}</td>
+              <td>${dp.sprVillaDailyL ? dp.sprVillaDailyL.toLocaleString() : 0}</td>
+              <td class="irr-kl">${ib.villaIrrigKL.toFixed(1)}</td></tr>
+          <tr class="irr-sum-subtotal"><td colspan="3">Irrigation Sub-total</td>
+              <td class="irr-kl">${ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL > 0 ? (ib.dripFarmingKL + ib.farmSprinklerKL + ib.villaIrrigKL).toFixed(1) : '0.0'}</td></tr>
+          ${ib.goshalKL > 0 ? \`<tr><td>Goshala</td><td>–</td><td>–</td><td class="irr-kl">\${ib.goshalKL.toFixed(0)}</td></tr>\` : ''}
+          ${ib.swimmingPoolKL > 0 ? \`<tr><td>Swimming Pool</td><td>–</td><td>–</td><td class="irr-kl">\${ib.swimmingPoolKL.toFixed(0)}</td></tr>\` : ''}
+          <tr class="irr-sum-total"><td colspan="3"><strong>Total Non-Domestic (D29)</strong></td>
+              <td class="irr-kl"><strong>${ib.totalMonthlyKL.toFixed(0)} KL/mo</strong></td></tr>
+          <tr class="irr-sum-total"><td colspan="3"><strong>Daily Non-Domestic (D30)</strong></td>
+              <td class="irr-kl"><strong>${ib.totalDailyKL.toFixed(2)} KL/day</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderCatchmentRow(c, i) {
   return `
     <tr id="catch-row-${i}">
@@ -456,10 +510,11 @@ function saveInputs() {
 
   // Basic params
   const fields = ['landSize','numVillas','bua','bedrooms','occupantsPerVilla',
-                  'lpcdPerPerson','farmingMonthlyKL','landscapingMonthlyKL',
-                  'swimmingPoolMonthlyKL','amenitiesMonthlyKL','goshalaMontlyKL',
-                  'farmArea','forestArea','roadArea','totalDripLines','dripFlowRate',
-                  'dripDurationMin','dripEfficiency','sprinklerFlowRate','sprinklerEfficiency'];
+                  'lpcdPerPerson','goshalaMontlyKL','swimmingPoolMonthlyKL',
+                  'amenitiesMonthlyKL','landscapingMonthlyKL',
+                  'farmDripArea','farmSprinklerArea','villaIrrigArea',
+                  'drippersPerSqm','farmSprinklersPerSqm','villaSprinklersPerSqm',
+                  'dripFlowRate','dripEfficiency','sprinklerEfficiency'];
   fields.forEach(f => { p.params[f] = numVal(f); });
 
   // Occupancy ramp
@@ -1019,13 +1074,20 @@ function kpiCard(label, value, unit, cls, note) {
 }
 
 function kpiCard2Row(dp, sim) {
-  const monthlyDomestic = dp.totalPop * (dp.lpcdPerPerson || dp.lpcd/dp.occupantsPerVilla) / 1000 * 0.40 * 30;
+  const monthlyDomestic    = dp.totalPop * (dp.lpcdPerPerson || dp.lpcd/dp.occupantsPerVilla) / 1000 * 0.40 * 30;
+  const totalNonDomMonthly = dp.totalMonthlyKL || dp.farmingMonthlyKL || 0;
   return `
     <div class="kpi-row">
-      ${kpiCard('Total Population',     dp.totalPop.toLocaleString(), 'persons', 'kpi-indigo', 'At full occupancy')}
-      ${kpiCard('Monthly Domestic',     monthlyDomestic.toFixed(0),  'KL/mo',   'kpi-teal',   'Avg domestic demand')}
-      ${kpiCard('Monthly Farming',      dp.farmingMonthlyKL.toFixed(0), 'KL/mo', 'kpi-green',  'Drip + sprinkler')}
-      ${kpiCard('Total Catchment Area', dp.totalCatchmentArea.toLocaleString(), 'sqm', 'kpi-blue', 'All harvesting surfaces')}
+      ${kpiCard('Total Population',     dp.totalPop.toLocaleString(),           'persons', 'kpi-indigo', 'At full occupancy')}
+      ${kpiCard('Monthly Domestic',     monthlyDomestic.toFixed(0),             'KL/mo',   'kpi-teal',   'Avg at 40% diversity')}
+      ${kpiCard('Total Irrigation',     (dp.farmingMonthlyKL||0).toFixed(0),    'KL/mo',   'kpi-green',  'Drip + farm spr + villa spr')}
+      ${kpiCard('Total Non-Domestic',   totalNonDomMonthly.toFixed(0),          'KL/mo',   'kpi-amber',  'Irrigation + goshala + pool')}
+    </div>
+    <div class="kpi-row">
+      ${kpiCard('Drip Farming',         (dp.dripMonthlyKL||0).toFixed(0),       'KL/mo',   'kpi-green',  dp.numDrippers ? dp.numDrippers.toLocaleString()+' drippers' : 'Drip irrigation')}
+      ${kpiCard('Farm Sprinklers',      (dp.farmSprMonthlyKL||0).toFixed(0),    'KL/mo',   'kpi-blue',   dp.numSprinklersFarm ? dp.numSprinklersFarm+' sprinklers' : 'Farm sprinklers')}
+      ${kpiCard('Villa Irrigation',     (dp.villaSprMonthlyKL||0).toFixed(0),   'KL/mo',   'kpi-indigo', dp.numSprinklersVilla ? dp.numSprinklersVilla+' sprinklers' : 'Villa sprinklers')}
+      ${kpiCard('Total Catchment Area', dp.totalCatchmentArea.toLocaleString(), 'sqm',     'kpi-blue',   'All harvesting surfaces')}
     </div>`;
 }
 
